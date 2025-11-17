@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华夏共和国 - OpenGeofiction协作国家项目</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --primary-color: #C8102E;
+            --primary-dark: #9B0C23;
+            --accent-color: #ffae00;
+            --text-color: #2C3E50;
+            --text-light: #5A6C7D;
+            --light-bg: #F8F9FA;
+            --white: #fffdfd;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-hover: 0 8px 24px rgba(0,0,0,0.12);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --border-radius: 12px;
+        }
+
+        /* 深色模式变量覆盖 */
+        :root[data-theme="dark"] {
+            --primary-color: #F97373;
+            --primary-dark: #F05252;
+            --accent-color: #FACC15;
+            --text-color: #E5E7EB;
+            --text-light: #9CA3AF;
+            --light-bg: #0d182c;
+            --white: #16303f;
+            --shadow: 0 4px 18px rgba(0,0,0,0.7);
+            --shadow-hover: 0 8px 30px rgba(0,0,0,0.9);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.7;
+            color: var(--text-color);
+            background-color: var(--light-bg);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* 导航栏 */
+        header {
+            background: var(--white);
+            padding: 1rem 0;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: var(--transition);
+        }
+        
+        header.scrolled {
+            padding: 0.7rem 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            letter-spacing: -0.5px;
+        }
+        
+        .logo span {
+            color: var(--accent-color);
+            margin-left: 6px;
+            font-weight: 800;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2.5rem;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            transition: var(--transition);
+            font-weight: 500;
+            font-size: 0.95rem;
+            position: relative;
+        }
+        
+        .lang-switch {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-left: 1rem;
+            white-space: nowrap;
+        }
+
+        .lang-switch span {
+            margin: 0 0.25rem;
+            color: #ccc;
+        }
+
+        .lang-switch a {
+            font-weight: 600;
+        }
+
+        .lang-switch a.active-lang {
+            color: var(--primary-color);
+        }
+
+        .lang-switch a::after {
+            /* 去掉导航下划线动画 */
+            display: none;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary-color);
+            transition: var(--transition);
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        /* 深色模式切换按钮 */
+        .theme-toggle {
+            border: none;
+            background: rgba(148, 163, 184, 0.18);
+            padding: 0.5rem 0.7rem;
+            border-radius: 999px;
+            cursor: pointer;
+            margin-left: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .theme-toggle i {
+            font-size: 1rem;
+            color: var(--text-color);
+        }
+
+        .theme-toggle:hover {
+            background: rgba(148, 163, 184, 0.35);
+            transform: translateY(-1px);
+        }
+        
+        .hamburger {
+            display: none;
+            cursor: pointer;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 28px;
+            height: 22px;
+        }
+        
+        .hamburger span {
+            display: block;
+            height: 3px;
+            width: 100%;
+            background: var(--primary-color);
+            border-radius: 3px;
+            transition: var(--transition);
+        }
+        
+        /* 主横幅 */
+        .hero {
+            background:
+                linear-gradient(135deg, rgba(18, 26, 38, 0.92), rgba(200, 16, 46, 0.60)),
+                url('https://images.unsplash.com/photo-1508804185872-d7badad00f7d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')
+                no-repeat center center / cover;
+            min-height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #FFFFFF;
+            position: relative;
+            padding-top: 90px;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 30% 50%, rgba(255, 222, 0, 0.10), transparent 55%);
+            pointer-events: none;
+        }
+        
+        .hero-content {
+            max-width: 900px;
+            padding: 3rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-tagline {
+            font-size: 0.9rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            opacity: 0.85;
+            margin-bottom: 0.5rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+        
+        .hero h1 {
+            font-size: clamp(2.6rem, 5.2vw, 3.6rem);
+            margin-bottom: 1rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-shadow: 1px 3px 6px rgba(0,0,0,0.35);
+        }
+        
+        .hero p {
+            font-size: clamp(1.05rem, 1.9vw, 1.3rem);
+            margin-bottom: 2.2rem;
+            line-height: 1.8;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            max-width: 720px;
+            margin-left: auto;
+            margin-right: auto;
+            opacity: 0.95;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: var(--primary-color);
+            color: #FFFFFF;
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-size: 1.05rem;
+            font-weight: 600;
+            transition: var(--transition);
+            margin: 0.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(200, 16, 46, 0.3);
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(200, 16, 46, 0.4);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #FFFFFF;
+            box-shadow: none;
+        }
+        
+        .btn-outline:hover {
+            background: #FFFFFF;
+            color: var(--primary-color);
+            border-color: #FFFFFF;
+        }
+        
+        /* 内容区域 */
+        section {
+            padding: 6rem 0;
+        }
+        
+        section h2 {
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            color: var(--primary-color);
+            font-weight: 700;
+            position: relative;
+        }
+        
+        section h2::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            margin: 1rem auto 0;
+            border-radius: 2px;
+        }
+        
+        /* 项目介绍 - 中英文分栏 */
+        .intro-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-top: 2.5rem;
+        }
+
+        .intro-section {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 2rem 2rem 2.2rem;
+            position: relative;
+            border-left: none;
+            transition: var(--transition);
+        }
+
+        .intro-section:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .intro-section h3 {
+            color: var(--text-color);
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .intro-section h3::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary-color);
+        }
+
+        .intro-section p {
+            margin-bottom: 1rem;
+            font-size: 1.02rem;
+            line-height: 1.9;
+            color: var(--text-light);
+        }
+
+        
+        /* OGF3D地图预览 */
+        .ogf3d-map {
+            background: var(--light-bg);
+        }
+
+        .map-intro {
+            margin-top: -1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            color: var(--text-light);
+            text-align: center;
+        }
+
+        /* 外壳：限制高度和阴影，不全屏 */
+        .huaxia-map-viewer {
+            position: relative;
+            max-width: 2000px;
+            height: 560px;
+            margin: 0 auto 0;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 18px 45px rgba(0,0,0,0.16);
+            background: var(--white);
+        }
+
+        /* Leaflet 地图本体填满外壳 */
+        #map {
+            width: 100%;
+            height: 100%;
+            background: var(--white);
+        }
+
+        .leaflet-container {
+            background: var(--white) !important;
+        }
+
+        :root[data-theme="dark"] .leaflet-container,
+        :root[data-theme="dark"] #map {
+            background: #020617 !important;
+        }
+
+        /* 右上角控制面板 */
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            min-width: 320px;
+            max-height: calc(100% - 40px);
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        /* 面板内的“收起”按钮 */
+        .controls-collapse-btn {
+            width: 100%;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 6px;
+            background: #e5e7eb;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .controls-collapse-btn:hover {
+            background: #d1d5db;
+            transform: translateY(-1px);
+        }
+
+        :root[data-theme="dark"] .controls-collapse-btn {
+            background: #1f2937;
+            color: var(--text-color);
+        }
+
+        :root[data-theme="dark"] .controls-collapse-btn:hover {
+            background: #111827;
+        }
+
+        /* 收起时显示的悬浮“展开”按钮 */
+        .controls-expand-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: none;
+            background: rgba(15, 23, 42, 0.9);
+            color: #f9fafb;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: none; /* 默认不显示，收起时再显示 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+        }
+
+        .controls-expand-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+        }
+
+        :root[data-theme="light"] .controls-expand-btn {
+            background: rgba(255, 255, 255, 0.95);
+            color: #111827;
+        }
+
+        /* 收起动画：把右侧面板整体滑出视口 */
+        #controls {
+            transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+        }
+
+        .huaxia-map-viewer.controls-collapsed #controls {
+            transform: translateX(110%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 收起状态下显示“展开”按钮 */
+        .huaxia-map-viewer.controls-collapsed .controls-expand-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 小屏幕时按钮略微下移一点 */
+        @media (max-width: 768px) {
+            .controls-expand-btn {
+                top: 14px;
+                right: 14px;
+                font-size: 12px;
+                padding: 7px 12px;
+            }
+        }
+
+        :root[data-theme="dark"] #controls {
+            background: rgba(65, 43, 43, 0.96);
+            color: var(--text-color);
+        }
+
+        #controls h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #333;
+            border-bottom: 2px solid #4a9eff;
+            padding-bottom: 10px;
+        }
+
+        :root[data-theme="dark"] #controls h2 {
+            color: var(--text-color);
+        }
+
+        #controls h3 {
+            margin: 15px 0 10px 0;
+            font-size: 15px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        #controls button {
+            width: 100%;
+            padding: 12px;
+            background: #4a9eff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 8px;
+        }
+
+        #controls button:hover {
+            background: #3a8eef;
+        }
+
+        #controls button:active {
+            background: #2a7edf;
+        }
+
+        #controls button:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 底部缩放 / 坐标信息条 */
+        #map-info {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            display: flex;
+            gap: 16px;
+            white-space: nowrap;
+        }
+
+        :root[data-theme="dark"] #map-info {
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-color);
+        }
+
+        #map-info div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #map-info .label {
+            color: #666;
+            font-weight: 400;
+        }
+
+        #map-info .value {
+            color: #4a9eff;
+            font-weight: 600;
+        }
+
+        /* 图层列表和按钮 */
+        .layer-list {
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 8px;
+            overflow-y: auto;
+            touch-action: pan-y;
+        }
+
+        :root[data-theme="dark"] .layer-list {
+            background: #3f1f1f;
+        }
+
+        .layer-item {
+            background: #ffffff;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.2s;
+            touch-action: pan-y;
+        }
+
+        :root[data-theme="dark"] .layer-item {
+            background: #3f1f1f;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.8);
+        }
+
+        .layer-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .layer-item:hover {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .layer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .layer-title {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .layer-title input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .layer-title label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        :root[data-theme="dark"] .layer-title label {
+            color: var(--text-color);
+        }
+
+        .layer-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .layer-btn {
+            background: #ebebeb;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: background 0.2s;
+            padding: 0;
+            margin: 0;
+        }
+
+        :root[data-theme="dark"] .layer-btn {
+            background: #181f36;
+            color: var(--text-color);
+        }
+
+        .layer-btn:hover,
+        .layer-btn:active {
+            background: #4e7388;
+        }
+
+        .layer-btn.delete {
+            color: #ff4444;
+        }
+
+        .layer-settings {
+            border-top: 1px solid #e0e0e0;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        :root[data-theme="dark"] .layer-settings {
+            border-top-color: #374151;
+        }
+
+        .layer-setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            touch-action: none;
+        }
+
+        .layer-setting-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .layer-setting-row label {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        :root[data-theme="dark"] .layer-setting-row label {
+            color: var(--text-light);
+        }
+
+        .layer-setting-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .layer-setting-row .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            max-width: 180px;
+            touch-action: pan-x;
+        }
+
+        .layer-setting-row input[type="range"] {
+            flex: 1;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+            touch-action: pan-x;
+        }
+
+        .layer-setting-row input[type="range"]::-webkit-slider-thumb,
+        .layer-setting-row input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: #4a9eff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .layer-setting-row .slider-value {
+            font-size: 12px;
+            color: #4a9eff;
+            font-weight: 600;
+            min-width: 38px;
+            text-align: right;
+        }
+
+        .layer-empty {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            padding: 20px;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 15px 0;
+        }
+
+        :root[data-theme="dark"] .section-divider {
+            background: #374151;
+        }
+
+        .add-layer-section {
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 8px;
+        }
+
+        :root[data-theme="dark"] .add-layer-section {
+            background: #3f1f1f;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            background: #ffffff;
+            border: 2px solid #e6e6e6;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0;
+        }
+
+        :root[data-theme="dark"] .preset-btn {
+            background: #3f1f1f;
+            border-color: #374151;
+            color: var(--text-light);
+        }
+
+        .preset-btn:hover {
+            border-color: #4a9eff;
+            background: #f0f8ff;
+        }
+
+        :root[data-theme="dark"] .preset-btn:hover {
+            background: #ffb0b0;
+        }
+
+        /* 拖拽相关 */
+        .layer-item.dragging {
+            opacity: 0.5;
+            cursor: move;
+        }
+
+        .layer-item.drag-over {
+            border-top: 3px solid #4a9eff;
+        }
+
+        .drag-handle {
+            cursor: move;
+            color: #999;
+            font-size: 18px;
+            margin-right: 8px;
+            user-select: none;
+        }
+
+        /* 3D 链接区域 */
+        .map-extra-links {
+            margin: 1.5rem auto 0;
+            max-width: 1100px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            justify-content: flex-end;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .map-extra-links a {
+            color: var(--primary-color);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .map-extra-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* 简单的响应式收缩 */
+        @media (max-width: 768px) {
+            .huaxia-map-viewer {
+                height: 420px;
+                border-radius: 12px;
+            }
+
+            #controls {
+                min-width: 260px;
+                padding: 14px;
+            }
+
+            .theme-toggle {
+                margin-left: 0.5rem;
+            }
+
+            #map-info {
+                bottom: 10px;
+                padding: 8px 14px;
+                gap: 10px;
+            }
+
+            .map-extra-links {
+                justify-content: center;
+            }
+        }
+
+        .ogf-map-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .ogf-map-pane {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-hover);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ogf-map-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem 0.5rem;
+        }
+
+        .ogf-map-header h3 {
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .ogf-map-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.1rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            background: var(--primary-color);
+            color: #fff;
+        }
+
+        .ogf-map-iframe {
+            width: 100%;
+            height: 320px;
+            border: none;
+            display: block;
+        }
+
+        .ogf-map-pane .ogf-map-desc {
+            padding: 1rem 1.5rem 1.3rem;
+            background: var(--white);
+        }
+
+        .ogf-map-pane .ogf-map-desc p {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        /* 小屏幕下改为上下排列 */
+        @media (max-width: 968px) {
+            .ogf-map-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ogf-map-iframe {
+                height: 280px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                width: 95%;
+            }
+
+            .hero-content {
+                padding: 2rem 1rem;
+            }
+
+            .btn {
+                padding: 0.8rem 1.8rem;
+                font-size: 0.95rem;
+            }
+
+            .intro-section {
+                padding: 1.5rem;
+            }
+
+            .ogf-map-iframe {
+                height: 240px;
+            }
+        }
+        
+        .ogf-map-desc {
+            padding: 2rem;
+            text-align: center;
+            background: var(--white);
+        }
+        
+        .ogf-map-desc p {
+            color: var(--text-light);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+        
+        /* 功能卡片 */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
+            margin-top: 3rem;
+        }
+        
+        .feature {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            text-align: center;
+            padding: 3rem 2rem;
+            opacity: 1;
+        }
+        
+        .feature:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .feature-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .feature p {
+            color: var(--text-light);
+            margin-bottom: 2rem;
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+        
+        /* 加入我们区域 */
+        #join {
+            background: linear-gradient(135deg, #effcff 0%, #ffffff 100%);
+        }
+
+        :root[data-theme="dark"] #join {
+            background: linear-gradient(135deg, #292141 0%, #10303a 100%);
+        }
+        
+        .join-content {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        .join-intro {
+            text-align: center;
+            font-size: 1.05rem;
+            margin-bottom: 2.5rem;
+            color: var(--text-light);
+        }
+        
+        .join-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.15fr);
+            gap: 2rem;
+            align-items: flex-start;
+        }
+        
+        .join-card {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 2.2rem 2rem;
+        }
+        
+        .join-card h3 {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .join-card p {
+            font-size: 0.98rem;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+        }
+        
+        /* 步骤 1 / 2 / 3 竖着排列 */
+        .join-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            text-align: left;
+            opacity: 1;
+        }
+        
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: #FFFFFF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(200, 16, 46, 0.3);
+            flex-shrink: 0;
+        }
+        
+        .step:hover .step-number {
+            background: linear-gradient(135deg, var(--accent-color), #FFB700);
+            color: var(--primary-color);
+            transform: scale(1.08) rotate(4deg);
+            box-shadow: 0 8px 20px rgba(255, 222, 0, 0.4);
+        }
+        
+        .step h4 {
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            margin-bottom: 0.6rem;
+            font-weight: 700;
+        }
+        
+        .step p {
+            color: var(--text-light);
+            font-size: 0.95rem;
+        }
+        
+        .join-cta {
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+        
+        .join-cta .btn {
+            font-size: 1rem;
+            padding: 0.9rem 2.4rem;
+        }
+        
+        @media (max-width: 968px) {
+            .intro-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .join-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background: var(--white);
+                flex-direction: column;
+                padding: 1.5rem 0;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                gap: 0;
+            }
+            
+            .nav-links.active {
+                display: flex;
+            }
+            
+            .nav-links li {
+                width: 100%;
+                text-align: center;
+            }
+            
+            .nav-links a {
+                display: block;
+                padding: 1rem;
+            }
+            
+            .hamburger {
+                display: flex;
+            }
+            
+            .hamburger.active span:nth-child(1) {
+                transform: rotate(45deg) translate(7px, 7px);
+            }
+            
+            .hamburger.active span:nth-child(2) {
+                opacity: 0;
+            }
+            
+            .hamburger.active span:nth-child(3) {
+                transform: rotate(-45deg) translate(7px, -7px);
+            }
+            
+            section {
+                padding: 4rem 0;
+            }
+            
+            .intro-section {
+                padding: 2rem 1.5rem;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+        
+        /* 页脚 */
+        footer {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #FFFFFF;
+            padding: 4rem 0 2rem;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+        
+        .footer-section h3 {
+            margin-bottom: 1.5rem;
+            color: var(--accent-color);
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+        
+        .footer-section a {
+            color: #ddd;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.8rem;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+        
+        .footer-section a:hover {
+            color: var(--accent-color);
+            padding-left: 5px;
+        }
+        
+        .footer-section p {
+            color: #bbb;
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+        
+        .xiaohongshu-btn {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #FF2442, #E61E3D);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(255, 36, 66, 0.4);
+            margin-top: 1rem;
+        }
+        
+        .xiaohongshu-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 36, 66, 0.5);
+            background: linear-gradient(135deg, #E61E3D, #CC1A35);
+        }
+        
+        .xiaohongshu-btn i {
+            margin-right: 0.8rem;
+            font-size: 1.2rem;
+        }
+        
+        .qq-btn {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #12b7f5, #168bff);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(22, 139, 255, 0.4);
+            margin-top: 0.7rem;
+        }
+
+        .qq-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(22, 139, 255, 0.5);
+            background: linear-gradient(135deg, #168bff, #0f76e0);
+        }
+
+        .qq-btn i {
+            margin-right: 0.6rem;
+            font-size: 1.1rem;
+        }
+
+        .copyright {
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.9rem;
+            color: #aaa;
+            text-align: center;
+        }
+        
+        @media (max-width: 968px) {
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
+                /* 底部免责声明条 */
+        .disclaimer-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 2000;
+            background: #111827;
+            color: #e5e7eb;
+            display: none; /* 默认隐藏，JS 决定何时显示 */
+            padding: 0.9rem 1.2rem;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35);
+            font-size: 0.9rem;
+        }
+
+        :root[data-theme="dark"] .disclaimer-bar {
+            background: #020617;
+            color: #e5e7eb;
+        }
+
+        .disclaimer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .disclaimer-text {
+            line-height: 1.6;
+        }
+
+        .disclaimer-text b {
+            font-weight: 700;
+        }
+
+        .disclaimer-close-btn {
+            padding: 0.45rem 1.2rem;
+            border-radius: 999px;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            background: #facc15;
+            color: #111827;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        .disclaimer-close-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.65;
+            box-shadow: none;
+        }
+
+        .disclaimer-close-btn:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+            background: #fde047;
+        }
+
+        .disclaimer-bar.hide {
+            transform: translateY(100%);
+            opacity: 0;
+            transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+        }
+
+        @media (max-width: 640px) {
+            .disclaimer-inner {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .disclaimer-close-btn {
+                align-self: stretch;
+                text-align: center;
+                width: 100%;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <header id="header">
+        <div class="container">
+            <nav>
+                <div class="logo">OpenGeofiction <span>华夏</span></div>
+                <ul class="nav-links" id="navLinks">
+                    <li><a href="#about">项目介绍</a></li>
+                    <li><a href="#ogf3d-map">浏览华夏</a></li>
+                    <li><a href="#features">关于华夏</a></li>
+                    <li><a href="#join">加入我们</a></li>
+                    <li class="lang-switch">
+                        <a href="#" class="active-lang">中文</a>
+                        <span>|</span>
+                        <a href="huaxia-en.html">Original / EN</a>
+                    </li>
+                </ul>
+                <button class="theme-toggle" id="themeToggle" aria-label="切换深色模式">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="hamburger" id="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 主横幅 -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-tagline">OPEN GEOFICTION · HUAXIA COLLAB PROJECT</div>
+            <div class="hero-subtitle">在虚构大陆上，重构一个东方文明世界</div>
+            <h1>华夏共和国</h1>
+            <p>
+                欢迎来到 OpenGeofiction 中的「华夏」国家协作项目。<br>
+                这里的每一座城市、每一条铁路、每一片山海，都是由全球制图者共同完成的开放世界实验。
+            </p>
+            <a href="#about" class="btn btn-outline">了解华夏设定</a>
+            <a href="#join" class="btn">加入 OGF / 申请华夏</a>
+        </div>
+    </section>
+
+    <!-- 项目介绍 -->
+    <section id="about">
+        <div class="container">
+            <h2>项目介绍</h2>
+            <div class="intro-grid">
+                <!-- 项目简介 -->
+                <div class="intro-section">
+                    <h3>项目简介</h3>
+                    <p>华夏共和国是 OpenGeofiction 平台上的协作制图国家项目，位于虚构大陆北塔洲中部与南部沿海区域。项目旨在通过多人协作的方式，构建一个具有东方文明特色、同时符合现代城市与地理逻辑的虚构国家。</p>
+
+                    <p>目前项目重点包括：国家整体空间结构、主要城市群与交通走廊、山川河流等自然地理格局，以及与周边虚构国家之间的互动关系。参与者可以在统一设定下，共同完善从国家级规划到街道级细节。</p>
+
+                    <p>本页面为华夏项目的中文介绍版本，方便中文社群成员了解项目背景、参与方式与基础规则。</p>
+                </div>
+                
+                <!-- 设定 -->
+                <div class="intro-section">
+                    <h3>世界观与国家设定</h3>
+                    <p>华夏共和国（简称「华夏」）坐落于北塔洲中部与东南部沿海地区，国土面积约 875,212 平方千米（含领海）。境内拥有大华岭、天门山、林檎大山等山脉与广阔平原，北部海岸线相对平直，南部海岸线曲折多岛，包含日出岛、日落岛、东海群岛、东方红岛等。</p>
+
+                    <p>历史上，华夏曾与邻国「百」构成统一政权，后在外来殖民与近代战争的冲击下逐步分离。现代的华夏为共和制国家，具备较为完善的基础设施和工业体系，同时处于持续城市化与经济发展的阶段。</p>
+
+                    <p>华夏的整体世界观参考了现实东亚地区的自然地理、社会结构与文化符号，但并非任何现实国家的简单复刻。项目鼓励在统一世界观下进行合理想象，包括：现代都市、传统聚落、交通网络、工业与港口、自然保护区等多层级空间。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- OGF3D地图预览 -->
+    <section id="ogf3d-map" class="ogf3d-map">
+        <div class="container">
+            <h2>浏览华夏</h2>
+
+            <p class="map-intro">
+                下方为基于 Leaflet 的「OGF 华夏地图」查看模块，你可以在其中自由缩放、拖动进行浏览。
+                该模块仅用于查看瓦片地图，不会修改 OGF 上的任何实际数据。
+            </p>
+
+            <!-- 地图查看模块 -->
+            <div class="huaxia-map-viewer">
+                <div id="map"></div>
+
+                <!-- 底部居中缩放 / 坐标信息 -->
+                <div id="map-info">
+                    <div><span class="label">缩放:</span> <span class="value" id="zoom-level">6.0</span></div>
+                    <div><span class="label">坐标:</span> <span class="value" id="coordinates">15.00°, 150.00°</span></div>
+                </div>
+
+                <!-- 右侧控制面板：图层列表 + 预设图层 + 重置 -->
+                <div id="controls">
+                    <h2>🌍 OGF 华夏地图</h2>
+                    <!-- 收起按钮 -->
+                    <button id="controlsCollapseBtn" class="controls-collapse-btn" type="button">
+                        ⮜ 收起选项
+                    </button>
+
+                    <!-- 图层管理模块 -->
+                    <h3>🗺️ 图层管理</h3>
+                    <div class="control-group">
+                        <div class="layer-list" id="layerList">
+                            <div class="layer-empty">正在加载...</div>
+                        </div>
+                    </div>
+
+                    <!-- 添加图层（预设） -->
+                    <div class="control-group">
+                        <div class="add-layer-section">
+                            <h3 style="font-size: 13px; color: #666; margin-bottom: 8px;">📌 预设图层</h3>
+                            <div class="preset-grid" id="presetGrid">
+                                <!-- 预设按钮由脚本动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-divider"></div>
+
+                    <div class="control-group">
+                        <button id="resetBtn">🔄 重置视图</button>
+                    </div>
+                </div>
+                <button id="controlsExpandBtn" class="controls-expand-btn" type="button">
+                    🧭 打开选项
+                </button>
+            </div>
+
+            <!-- 3D：只保留超链接 -->
+            <div class="map-extra-links">
+                <span>想以 3D 视角查看华夏？</span>
+                <a href="https://ogfvector.infinatio.us/#zoom=6&lat=32.5&lon=108.0"
+                target="_blank" rel="noopener">
+                    前往 OGF 3D / 矢量地图
+                </a>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- 关于华夏 -->
+    <section id="features">
+        <div class="container">
+            <h2>关于华夏</h2>
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🗺️</div>
+                    <h3>优秀作品</h3>
+                    <p>查看社区成员最新的创作成果，包括城市规划、交通网络和地理特征设计。</p>
+                    <a href="#ogf3d-map" class="btn">浏览地图</a>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📖</div>
+                    <h3>项目Wiki</h3>
+                    <p>查看华夏共和国设相关定集，了解我们的“历史”。</p>
+                    <a href="https://wiki.opengeofiction.net/index.php/Huaxia" class="btn">了解华夏</a>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📏</div>
+                    <h3>绘制规则</h3>
+                    <p>了解华夏项目的创作指南和规范，确保您的作品与整体世界观一致。</p>
+                    <a href="https://wiki.opengeofiction.net/index.php/Collab:Huaxia" class="btn">查看规则</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 加入我们：加入 OGF 世界 + 申请华夏社区 -->
+    <section id="join">
+        <div class="container">
+            <h2>加入我们</h2>
+            <div class="join-content">
+                <p class="join-intro">
+                    加入 OpenGeofiction 世界本身是开放的，但加入「华夏协作社区」需要一定中文基础和简单审核。
+                    你可以先进入 OGF 世界练手，再通过右侧表单申请成为华夏项目成员。
+                </p>
+
+                <div class="join-grid">
+                    <!-- 加入 OGF 世界 -->
+                    <div class="join-card">
+                        <h3>加入 OGF 世界 / Join the OGF World</h3>
+                        <p>
+                            OGF 是一个完全虚构的地图世界，你可以在蓝区自由练习城市规划、交通网络和地理绘制，
+                            也可以在未来申请认领协作国家或地区。
+                        </p>
+                        <div class="join-steps">
+                            <div class="step">
+                                <div class="step-number">1</div>
+                                <div class="step-text">
+                                    <h4>注册 OGF 账户</h4>
+                                    <p>前往 OpenGeofiction 官网注册免费账户，熟悉编辑器与基础操作。</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">2</div>
+                                <div class="step-text">
+                                    <h4>阅读世界规则</h4>
+                                    <p>通读 OGF 全站规则与各类蓝区指导，避免破坏设定或造成技术问题。</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">3</div>
+                                <div class="step-text">
+                                    <h4>从蓝区开始创作</h4>
+                                    <p>在蓝区先尝试绘制小镇、道路与地形，积累经验后再考虑加入协作项目。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="join-cta">
+                            <a href="https://opengeofiction.net" class="btn" target="_blank">前往 OGF 官网</a>
+                        </div>
+                    </div>
+
+                    <!-- 申请加入华夏社区 -->
+                    <div class="join-card">
+                        <h3>申请加入华夏协作社区（邮件申请）</h3>
+                        <p>
+                            华夏是一个略有限制的合作项目；
+                            我们希望通过你的作品，更好地了解你的风格和对世界观的理解。
+                        </p>
+                        <p>
+                            推荐你具备一定的中文阅读能力，并对 OpenGeofiction 的基本规则和绘图规范有初步了解。
+                            若你还未在 OGF 上创作过，也可以通过其他形式的作品展示你的空间感与设定能力。
+                        </p>
+
+                        <h4 style="margin-top: 1.2rem; font-size: 1rem; color: var(--primary-color);">一、作品集内容建议包括</h4>
+                        <ul style="margin: 0.4rem 0 0.8rem 1.2rem; padding-left: 0;">
+                            <li>1～3 份代表性作品（任选其一或混合）：</li>
+                            <li>· 手绘地图 / 城市草图 / 区域规划草图</li>
+                            <li>· 城市建设类游戏中的存档或截图（如《Cities: Skylines》等），附简单文字说明</li>
+                            <li>· 架空世界 / 架空国家 / 架空城市等相关设定文档、Wiki 草稿或示意图</li>
+                            <li>· 若已在 OGF 绘图，可附上相关坐标链接或页面链接</li>
+                        </ul>
+
+                        <h4 style="margin-top: 0.8rem; font-size: 1rem; color: var(--primary-color);">二、邮件中请简单介绍</h4>
+                        <ul style="margin: 0.4rem 0 0.8rem 1.2rem; padding-left: 0;">
+                            <li>· 你的常用昵称 / OGF 用户名（如有）</li>
+                            <li>· 主要使用语言（中文 / 英文 / 其他）</li>
+                            <li>· 希望在华夏参与的方向（例如：铁路、高速公路、城市总体规划、地方小镇、自然地理等）</li>
+                            <li>· 对华夏或相关区域的简要构想（可选）</li>
+                        </ul>
+
+                        <h4 style="margin-top: 0.8rem; font-size: 1rem; color: var(--primary-color);">三、发送到协作邮箱</h4>
+                        <p class="email-note">
+                            请将上述内容整理后发送至协作邮箱
+                            『2543969386@qq.com』，
+                            邮件标题建议格式：
+                            <code>【华夏申请】你的昵称 / OGF 用户名</code>。
+                        </p>
+                        <p class="email-note">
+                            协作团队会在有空时集中处理申请，并通过邮件或 OGF 站内信进行回复。由于成员均为志愿者，回复时间可能略有波动，还请理解与耐心等待。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <!-- 关于项目 -->
+                <div class="footer-section">
+                    <h3>关于项目</h3>
+                    <p>华夏共和国是 OpenGeofiction 平台上的协作制图项目，致力于构建一个真实、详细的虚构东方文明国家。</p>
+                    <a href="contributors.html">贡献者名单</a>
+                    <a href="#about">项目历史</a>
+                </div>
+                
+                <!-- 快速链接 -->
+                <div class="footer-section">
+                    <h3>快速链接</h3>
+                    <a href="#about">项目介绍</a>
+                    <a href="#ogf3d-map">浏览华夏</a>
+                    <a href="#features">关于华夏</a>
+                    <a href="#join">加入我们</a>
+                    <a href="https://opengeofiction.net" target="_blank">OGF官网</a>
+                </div>
+                
+                <!-- 资源与社区 -->
+                <div class="footer-section">
+                    <h3>资源与社区</h3>
+                    <a href="/index.php/Collab:Huaxia/Guide">绘制教程 / 华夏绘图指南</a>
+                    <a href="#styleguide">风格指南（预留）</a>
+                    <a href="#forum">项目论坛（预留）</a>
+                    <a href="#help">新手指导（预留）</a>
+                    <a href="https://www.xiaohongshu.com/user/profile/6754331e0000000016009ad4" class="xiaohongshu-btn" target="_blank">
+                        <i class="fas fa-book"></i> 关注小红书 · 华夏项目
+                    </a>
+                    <a href="https://qun.qq.com/universal-share/share?ac=1&authKey=RWkRJkUPR4v4Sp9T0qATDPywjyyimawQR2q3PBnIAofN0U86EY4rXzBuPN8t2voh&busi_data=eyJncm91cENvZGUiOiI5ODM5MTQ2OTQiLCJ0b2tlbiI6ImJzRlFrMzJkNzZEREtOVldpblgxT3hPbmhIOE1ISEVEd0JxRGcvektQZTRjSGZ3THBQRXhHWTI5aXRjRGQvbTUiLCJ1aW4iOiIxMDIwNDQxOTgzIn0%3D&data=5G_KYP-l6lPTsFSohnfUPzT21zZ-nk1r5mzk3we1MTe2Mas4jyj-QcF7pB0D3jych-2_reU_aHgtybUYAS39Qw&svctype=4&tempid=h5_group_info" class="qq-btn" target="_blank">
+                        <i class="fab fa-qq"></i> 加入QQ群 · 华夏项目
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 版权信息 -->
+            <div class="copyright">
+                <p>&copy; 2023–2025 OpenGeofiction 华夏协作国家项目. 本页面内容基于 CC BY-SA 4.0 许可共享.</p>
+            </div>
+        </div>
+    </footer>
+
+        <!-- 底部免责声明条 -->
+    <div id="disclaimerBar" class="disclaimer-bar" role="status" aria-live="polite">
+        <div class="disclaimer-inner">
+            <div class="disclaimer-text">
+                <b>免责声明：</b>
+                本页面所述“华夏共和国”、北塔洲等内容均为 OpenGeofiction 虚构世界的一部分，
+                与任何现实国家、地区、人物、事件无关，仅供世界观与地图创作爱好者娱乐与交流之用。
+            </div>
+            <button type="button" class="disclaimer-close-btn">
+                （<span data-countdown>3</span> 秒后可关闭）
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 主题切换
+        (function () {
+            const root = document.documentElement;
+            const toggleBtn = document.getElementById('themeToggle');
+            const THEME_KEY = 'huaxia-theme';
+
+            function applyTheme(theme) {
+                root.setAttribute('data-theme', theme);
+                if (toggleBtn) {
+                    toggleBtn.innerHTML = theme === 'dark'
+                        ? '<i class="fas fa-sun"></i>'
+                        : '<i class="fas fa-moon"></i>';
+                }
+            }
+
+            const stored = localStorage.getItem(THEME_KEY);
+            if (stored === 'dark' || stored === 'light') {
+                applyTheme(stored);
+            } else {
+                applyTheme('light');
+            }
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function () {
+                    const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    applyTheme(next);
+                    localStorage.setItem(THEME_KEY, next);
+                });
+            }
+        })();
+
+        // 导航栏滚动效果
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // 移动端菜单切换
+        document.getElementById('hamburger').addEventListener('click', function() {
+            document.getElementById('navLinks').classList.toggle('active');
+            this.classList.toggle('active');
+        });
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    e.preventDefault();
+                    const headerHeight = document.getElementById('header').offsetHeight;
+                    const targetPosition = targetElement.offsetTop - headerHeight;
+                    
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                    
+                    // 移动端关闭菜单
+                    if (window.innerWidth <= 768) {
+                        document.getElementById('navLinks').classList.remove('active');
+                        document.getElementById('hamburger').classList.remove('active');
+                    }
+                }
+            });
+        });
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 如果本页没有 map（比如英文版），直接跳过
+        if (!document.getElementById('map') || typeof L === 'undefined') return;
+
+        // ===== 配置项 =====
+        const CONFIG = {
+            presetLayers: {
+                'ogf-carto': {
+                    name: 'OGF Carto',
+                    url: 'https://tile.opengeofiction.net/ogf-carto/{z}/{x}/{y}.png',
+                    attribution: '© OpenGeoFiction contributors',
+                    maxZoom: 18
+                },
+                'osm': {
+                    name: 'OSM Carto',
+                    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
+                }
+            },
+            defaultView: {
+                center: [15, 150],   // 可以改成华夏大致中心
+                zoom: 6
+            }
+        };
+
+        // ===== 初始化地图 =====
+        const map = L.map('map', {
+            center: CONFIG.defaultView.center,
+            zoom: CONFIG.defaultView.zoom,
+            zoomControl: true,
+            worldCopyJump: true,
+            maxBounds: [[-90, -180], [90, 180]],
+            maxBoundsViscosity: 0.5
+        });
+
+        // 左下角比例尺
+        L.control.scale({
+            position: 'bottomleft',
+            metric: true,
+            imperial: false,
+            maxWidth: 150
+        }).addTo(map);
+
+        // ===== 图层管理器 =====
+        class LayerManager {
+            constructor(map, config) {
+                this.map = map;
+                this.config = config;
+                this.layers = [];
+                this.nextId = 1;
+                this.createLayerPanes();
+            }
+
+            createLayerPanes() {
+                for (let i = 0; i < 20; i++) {
+                    this.map.createPane(`layer-pane-${i}`);
+                    this.map.getPane(`layer-pane-${i}`).style.zIndex = 200 + i * 10;
+                }
+            }
+
+            addLayer(presetKey, config = {}) {
+                const presetConfig = this.config.presetLayers[presetKey];
+                if (!presetConfig) {
+                    console.error(`Preset layer ${presetKey} not found`);
+                    return null;
+                }
+
+                const layerId = this.nextId++;
+                const layerIndex = this.layers.length;
+
+                const layerData = {
+                    id: layerId,
+                    presetKey,
+                    name: presetConfig.name,
+                    visible: true,
+                    opacity: config.opacity !== undefined ? config.opacity : 1.0,
+                    grayscale: config.grayscale !== undefined ? config.grayscale : false,
+                    layer: null,
+                    pane: `layer-pane-${layerIndex}`
+                };
+
+                layerData.layer = L.tileLayer(presetConfig.url, {
+                    attribution: presetConfig.attribution,
+                    maxZoom: presetConfig.maxZoom,
+                    opacity: layerData.opacity,
+                    pane: layerData.pane
+                });
+
+                layerData.layer.addTo(this.map);
+                this.applyGrayscaleFilter(layerData);
+
+                this.layers.push(layerData);
+                return layerData;
+            }
+
+            removeLayer(layerId) {
+                const index = this.layers.findIndex(l => l.id === layerId);
+                if (index === -1) return false;
+
+                const layerData = this.layers[index];
+                this.map.removeLayer(layerData.layer);
+                this.layers.splice(index, 1);
+
+                this.reorderLayers();
+                return true;
+            }
+
+            moveLayer(layerId, direction) {
+                const index = this.layers.findIndex(l => l.id === layerId);
+                if (index === -1) return false;
+
+                const newIndex = direction === 'up' ? index + 1 : index - 1;
+                if (newIndex < 0 || newIndex >= this.layers.length) return false;
+
+                [this.layers[index], this.layers[newIndex]] = [this.layers[newIndex], this.layers[index]];
+                this.reorderLayers();
+                return true;
+            }
+
+            reorderLayers() {
+                this.layers.forEach((layerData, index) => {
+                    const newPane = `layer-pane-${index}`;
+                    layerData.pane = newPane;
+
+                    const presetConfig = this.config.presetLayers[layerData.presetKey];
+                    this.map.removeLayer(layerData.layer);
+
+                    layerData.layer = L.tileLayer(presetConfig.url, {
+                        attribution: presetConfig.attribution,
+                        maxZoom: presetConfig.maxZoom,
+                        opacity: layerData.opacity,
+                        pane: newPane
+                    });
+
+                    if (layerData.visible) {
+                        layerData.layer.addTo(this.map);
+                    }
+
+                    this.applyGrayscaleFilter(layerData);
+                });
+            }
+
+            toggleLayer(layerId, visible) {
+                const layerData = this.layers.find(l => l.id === layerId);
+                if (!layerData) return false;
+
+                layerData.visible = visible;
+                if (visible) {
+                    layerData.layer.addTo(this.map);
+                } else {
+                    this.map.removeLayer(layerData.layer);
+                }
+                return true;
+            }
+
+            setOpacity(layerId, opacity) {
+                const layerData = this.layers.find(l => l.id === layerId);
+                if (!layerData) return false;
+
+                layerData.opacity = opacity;
+                layerData.layer.setOpacity(opacity);
+                return true;
+            }
+
+            toggleGrayscale(layerId, enabled) {
+                const layerData = this.layers.find(l => l.id === layerId);
+                if (!layerData) return false;
+
+                layerData.grayscale = enabled;
+                this.applyGrayscaleFilter(layerData);
+                return true;
+            }
+
+            applyGrayscaleFilter(layerData) {
+                const pane = this.map.getPane(layerData.pane);
+                if (layerData.grayscale) {
+                    pane.style.filter = 'grayscale(100%)';
+                } else {
+                    pane.style.filter = 'none';
+                }
+            }
+
+            getAllLayers() {
+                return this.layers;
+            }
+
+            reset() {
+                this.map.setView(CONFIG.defaultView.center, CONFIG.defaultView.zoom);
+            }
+        }
+
+        const layerManager = new LayerManager(map, CONFIG);
+        // 默认使用彩色图层（不再是黑白）
+        layerManager.addLayer('ogf-carto', { grayscale: false });
+
+        // ===== UI 管理 =====
+        const layerList = document.getElementById('layerList');
+        const presetGrid = document.getElementById('presetGrid');
+        const resetBtn = document.getElementById('resetBtn');
+
+        function renderLayerList() {
+            const layers = layerManager.getAllLayers();
+
+            if (layers.length === 0) {
+                layerList.innerHTML = '<div class="layer-empty">暂无图层，请添加预设图层</div>';
+                return;
+            }
+
+            layerList.innerHTML = '';
+
+            [...layers].reverse().forEach((layerData, reverseIndex) => {
+                const actualIndex = layers.length - 1 - reverseIndex;
+                const item = document.createElement('div');
+                item.className = 'layer-item';
+                item.dataset.layerId = layerData.id;
+
+                item.innerHTML = `
+                    <div class="layer-header">
+                        <div class="layer-title">
+                            <span class="drag-handle" draggable="true">⋮⋮</span>
+                            <input type="checkbox" id="layer-visible-${layerData.id}" ${layerData.visible ? 'checked' : ''}>
+                            <label for="layer-visible-${layerData.id}">${layerData.name}</label>
+                        </div>
+                        <div class="layer-controls">
+                            ${actualIndex < layers.length - 1 ? '<button class="layer-btn" data-action="up">▲</button>' : ''}
+                            ${actualIndex > 0 ? '<button class="layer-btn" data-action="down">▼</button>' : ''}
+                            <button class="layer-btn delete" data-action="delete">✕</button>
+                        </div>
+                    </div>
+                    <div class="layer-settings">
+                        <div class="layer-setting-row">
+                            <label>
+                                <input type="checkbox" data-setting="grayscale" ${layerData.grayscale ? 'checked' : ''}>
+                                🎨 黑白模式
+                            </label>
+                        </div>
+                        <div class="layer-setting-row">
+                            <label style="font-size: 12px; color: #666;">不透明度</label>
+                            <div class="slider-group">
+                                <input type="range" data-setting="opacity" min="0" max="100" value="${layerData.opacity * 100}">
+                                <span class="slider-value">${Math.round(layerData.opacity * 100)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // 可见性 / 黑白 / 透明度
+                const checkbox = item.querySelector('input[type="checkbox"]:not([data-setting])');
+                checkbox.addEventListener('change', (e) => {
+                    layerManager.toggleLayer(layerData.id, e.target.checked);
+                });
+
+                const grayscaleCheckbox = item.querySelector('[data-setting="grayscale"]');
+                grayscaleCheckbox.addEventListener('change', (e) => {
+                    layerManager.toggleGrayscale(layerData.id, e.target.checked);
+                });
+
+                const opacitySlider = item.querySelector('[data-setting="opacity"]');
+                const opacityValue = item.querySelector('.slider-value');
+                opacitySlider.addEventListener('input', (e) => {
+                    const value = e.target.value / 100;
+                    layerManager.setOpacity(layerData.id, value);
+                    opacityValue.textContent = e.target.value + '%';
+                });
+
+                // 阻止滑块区域触发拖拽
+                const sliderGroup = opacitySlider.closest('.slider-group');
+                sliderGroup.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                });
+                sliderGroup.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                }, { passive: false });
+
+                // 上移 / 下移 / 删除
+                item.querySelectorAll('.layer-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const action = btn.dataset.action;
+
+                        if (action === 'delete') {
+                            if (confirm(`确定要删除图层"${layerData.name}"吗？`)) {
+                                layerManager.removeLayer(layerData.id);
+                                renderLayerList();
+                            }
+                        } else if (action === 'up' || action === 'down') {
+                            layerManager.moveLayer(layerData.id, action);
+                            renderLayerList();
+                        }
+                    });
+                });
+
+                // 拖拽排序
+                const dragHandle = item.querySelector('.drag-handle');
+
+                dragHandle.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', layerData.id.toString());
+                    setTimeout(() => {
+                        item.classList.add('dragging');
+                    }, 0);
+                });
+
+                dragHandle.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const draggedId = parseInt(e.dataTransfer.getData('text/plain'));
+                    const targetId = layerData.id;
+
+                    if (draggedId !== targetId) {
+                        const layers = layerManager.getAllLayers();
+                        const draggedIndex = layers.findIndex(l => l.id === draggedId);
+                        const targetIndex = layers.findIndex(l => l.id === targetId);
+
+                        if (draggedIndex !== -1 && targetIndex !== -1) {
+                            [layers[draggedIndex], layers[targetIndex]] =
+                                [layers[targetIndex], layers[draggedIndex]];
+                            layerManager.reorderLayers();
+                            renderLayerList();
+                        }
+                    }
+                });
+
+                layerList.appendChild(item);
+            });
+        }
+
+        function renderPresetButtons() {
+            presetGrid.innerHTML = '';
+            Object.entries(CONFIG.presetLayers).forEach(([key, config]) => {
+                const btn = document.createElement('button');
+                btn.className = 'preset-btn';
+                btn.textContent = config.name;
+                btn.addEventListener('click', () => {
+                    layerManager.addLayer(key);
+                    renderLayerList();
+                });
+                presetGrid.appendChild(btn);
+            });
+        }
+
+        // 显示缩放 / 坐标
+        function updateMapInfo() {
+            const zoom = map.getZoom();
+            const center = map.getCenter();
+            document.getElementById('zoom-level').textContent = zoom.toFixed(1);
+            document.getElementById('coordinates').textContent =
+                `${center.lat.toFixed(2)}°, ${center.lng.toFixed(2)}°`;
+        }
+
+        map.on('zoomend moveend', updateMapInfo);
+        updateMapInfo();
+
+        resetBtn.addEventListener('click', () => {
+            layerManager.reset();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                resetBtn.click();
+            }
+        });
+
+        // 初始化 UI
+        renderLayerList();
+        renderPresetButtons();
+
+        // ===== 地图选项面板收起/展开 =====
+        const viewerEl = document.querySelector('.huaxia-map-viewer');
+        const collapseBtn = document.getElementById('controlsCollapseBtn');
+        const expandBtn = document.getElementById('controlsExpandBtn');
+
+        if (viewerEl && collapseBtn && expandBtn) {
+            // 收起
+            collapseBtn.addEventListener('click', function () {
+                viewerEl.classList.add('controls-collapsed');
+            });
+
+            // 展开
+            expandBtn.addEventListener('click', function () {
+                viewerEl.classList.remove('controls-collapsed');
+            });
+
+            if (window.innerWidth <= 768) {
+                viewerEl.classList.add('controls-collapsed');
+            }
+        }
+
+    });
+    </script>
+        <script>
+    // 底部免责声明：强制等待 3 秒后才能关闭，并用 localStorage 记住是否已阅读
+    document.addEventListener('DOMContentLoaded', function () {
+        const bar = document.getElementById('disclaimerBar');
+        if (!bar) return;
+
+        const closeBtn = bar.querySelector('.disclaimer-close-btn');
+        const countdownSpan = bar.querySelector('[data-countdown]');
+
+        // 显示条
+        bar.style.display = 'block';
+
+        // 初始 3 秒倒计时
+        let remaining = 3;
+        closeBtn.disabled = true;
+        if (countdownSpan) countdownSpan.textContent = remaining;
+
+        const timer = setInterval(() => {
+            remaining -= 1;
+            if (remaining > 0) {
+                if (countdownSpan) countdownSpan.textContent = remaining;
+            } else {
+                clearInterval(timer);
+                // 倒计时结束，允许关闭
+                if (countdownSpan) countdownSpan.textContent = '';
+                closeBtn.disabled = false;
+                closeBtn.textContent = '我已了解';
+            }
+        }, 1000);
+
+        closeBtn.addEventListener('click', () => {
+            if (closeBtn.disabled) return;
+            bar.classList.add('hide');
+            localStorage.setItem(ACK_KEY, '1');
+            // 动画结束后移除
+            setTimeout(() => {
+                if (bar && bar.parentNode) {
+                    bar.parentNode.removeChild(bar);
+                }
+            }, 300);
+        });
+    });
+    </script>
+
+</body>
+</html>
